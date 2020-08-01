@@ -1,0 +1,1 @@
+SEMVER_TYPES = ['major', 'minor', 'patch', 'manual']

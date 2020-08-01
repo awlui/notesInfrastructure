@@ -1,0 +1,15 @@
+version: '3.7'
+
+services:
+  # web: 
+  #   image: awlui2019/docker_setup:latest
+  #   expose:
+  #     - 8000
+  # web2:
+  #   build: ./app2/djangoStarter2
+  #   expose:
+  #     - 8000
+  nginx:
+    build: ./nginx
+    ports:
+      - 80:80
