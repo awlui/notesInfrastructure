@@ -4,6 +4,7 @@ import re
 from fabric import task, Connection
 from dotenv import load_dotenv
 
+from copy import deepcopy
 from yaml import load, dump
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
@@ -97,10 +98,87 @@ def deployImage(c):
     ''')
 
     version = result.stdout
-    
+    new_web_service = { "image": f"{DOCKER_USERNAME}/{DOCKER_IMAGE}:{version}".strip(), "expose": [8000] }
     result2 = conn.run(f'''
         cd /home/app
         cat docker-compose.prod.yml
     ''')
+    deserialized_yaml = load(result2.stdout, Loader=Loader)
 
-    load(result2.stdout, Loader=Loader)
+    initial_compose = deepcopy(deserialized_yaml)
+
+    initial_docker_services = initial_compose['services']
+    new_color = None
+
+    if (initial_docker_services.get('green')):
+        # deploy blue
+        print("ONE")
+        new_color = 'blue'
+        old_color = 'green'
+    elif (initial_docker_services.get('blue')):
+        # deploy green
+        print("TWO")
+        new_color = 'green'
+        old_color = 'blue'
+    else:
+        # deploy blue
+        print("THREE")
+        new_color = 'blue'
+        old_color = None
+
+    initial_docker_services[new_color] = new_web_service
+
+    # final_compose = deepcopy(initial_compose)
+    
+    # if old_color:
+    #     del final_compose['services'][old_color]
+
+    serialized_initial_yaml = dump(initial_compose, Dumper=Dumper)
+    print("FOUR")
+    result3 = conn.run(f'''
+        cd /home/app
+        echo "{serialized_initial_yaml}" > docker-compose.prod.yml
+    ''')
+    print("FIVE")
+    result4 = conn.run(f'''
+        cd /home/app
+        docker-compose -f docker-compose.prod.yml up --build -d
+    ''')
+    print("SIX")
+    if old_color:
+        print(old_color, 'old')
+        final_compose = deepcopy(initial_compose)
+    
+        del final_compose['services'][old_color]
+
+        serialized_final_yaml = dump(final_compose, Dumper=Dumper)
+
+        result5 = conn.run(f'''
+            cd /home/app
+            echo starting nginx
+            docker-compose -f docker-compose.prod.yml exec -T nginx sed -ie 's/{old_color}/{new_color}/' /etc/nginx/conf.d/nginx.conf
+            echo "{old_color}"
+            echo "{new_color}"
+            docker-compose -f docker-compose.prod.yml exec -T nginx nginx -s reload
+            echo "{serialized_final_yaml}" > docker-compose.prod.yml
+            docker-compose -f docker-compose.prod.yml up --build -d --remove-orphans
+
+        ''')
+
+
+
+
+
+    # print(a['services']['blue'], 'OI')
+  #   image: awlui2019/docker_setup:latest
+  #   expose:
+  #     - 8000
+
+@task
+def test(c):
+    blue = 'blue'
+    green = 'green'
+    conn.run(f'''
+                cd /home/app
+                docker-compose -f docker-compose.prod.yml exec -T nginx sed -ie 's/blue/green/' /etc/nginx/conf.d/nginx.conf
+    ''')
