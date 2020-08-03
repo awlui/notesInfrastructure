@@ -98,7 +98,12 @@ def deployImage(c):
     ''')
 
     version = result.stdout
-    new_web_service = { "image": f"{DOCKER_USERNAME}/{DOCKER_IMAGE}:{version}".strip(), "expose": [8000] }
+    new_web_service = { 
+        "image": f"{DOCKER_USERNAME}/{DOCKER_IMAGE}:{version}".strip(), 
+        "expose": [8000],
+        "env_file": ['./.prod.env'],
+        "volumes": ["static_volume:/home/app/web/staticfiles"]
+    }
     result2 = conn.run(f'''
         cd /home/app
         cat docker-compose.prod.yml

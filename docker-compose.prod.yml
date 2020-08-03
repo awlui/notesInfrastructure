@@ -11,6 +11,8 @@ services:
   #     - 8000
   nginx:
     build: ./nginx
+    volumes:
+      - static_volume:/home/app/web/staticfiles
     ports:
       - 80:80
   db:
@@ -24,3 +26,4 @@ services:
 
 volumes:
   postgres_data:
+  static_volume:
